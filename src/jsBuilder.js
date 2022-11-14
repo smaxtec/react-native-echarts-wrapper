@@ -1,29 +1,42 @@
-import { Platform } from "react-native"
+import { Platform } from "react-native";
 
-export const convertToPostMessageString = obj => {
+export const convertToPostMessageString = (obj) => {
+  return JSON.stringify(obj, (key, val) => {
+    // if (typeof obj === "function") {
+    //   console.log("flowolf: values xxxxx", key, val.toString());
+    //   return obj;
+    // }
+    // if (typeof val === "function") {
+    //   console.log("flowolf: values", key, val.toString());
+    //   // var f = val.toString();
+    //   // let ret = Object.defineProperty(f, "name", {
+    //   //   value: val.name,
+    //   //   writable: false,
+    //   // });
+
+    //   let ret = new Function("return " + val.toString());
+    //   console.log("flowolf: values2", ret);
+    //   return ret;
+    //   // return val.toString();
+    // }
+    return val;
+  });
+};
+
+export const toString = (obj) => {
+  if (obj === undefined) return JSON.stringify({});
+
   return JSON.stringify(obj, (key, val) => {
     if (typeof val === "function") {
-      return new Function("return " + val.toString())
+      return val.toString();
     }
-    return val
-  })
-}
+    return val;
+  });
+};
 
-export const toString = obj => {
-  if (obj === undefined) return JSON.stringify({})
-
-  return JSON.stringify(obj, (key, val) => {
-    if (typeof val === "function") {
-      return val.toString()
-    }
-    return val
-  })
-}
-
-export const getJavascriptSource = props => {
-  const { OS } = Platform
-  const renderer = "canvas"
-
+export const getJavascriptSource = (props) => {
+  const { OS } = Platform;
+  const renderer = "canvas";
   return `
              var chart = echarts.init(document.getElementById('main'), undefined, {renderer: '${renderer}'});
             chart.setOption(parse(decodeURI(\"${encodeURI(
@@ -52,13 +65,12 @@ export const getJavascriptSource = props => {
       
                       if (value
                           && typeof value === "string"
-                          && value.substr(0,8) === "function") {
+                          && value.slice(0,8) === "function") {
 
                           var startBody = value.indexOf('{') + 1;
                           var endBody = value.lastIndexOf('}');
                           var startArgs = value.indexOf('(') + 1;
                           var endArgs = value.indexOf(')');
-      
                           return new Function(value.substring(startArgs, endArgs)
                                             , value.substring(startBody, endBody));
                       }
@@ -83,7 +95,7 @@ export const getJavascriptSource = props => {
       
               function processMessage (e) {
                 var req = parse(e.data);
-      
+
                 switch(req.types) {
                   case "SET_OPTION":
                     chart.setOption(req.payload.option, req.payload.notMerge,req.payload.lazyUpate);
@@ -111,8 +123,11 @@ export const getJavascriptSource = props => {
                     sendCallbackData(req.uuid, data);
                     break;
                   default:
+                    alert("flowolf func??",req);
+
                     break;
                 }
+
               }
       
               window.document.addEventListener('message', function(e) {
@@ -123,6 +138,6 @@ export const getJavascriptSource = props => {
                 processMessage(e);
               });
 
-              ${props.additionalCode}
-        `
-}
+              decodeURI(\"${encodeURI(props.additionalCode)})\");
+              `;
+};

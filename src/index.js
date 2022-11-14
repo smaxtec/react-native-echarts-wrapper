@@ -13,15 +13,17 @@ class ECharts extends Component {
     canvas: PropTypes.bool,
     onLoadEnd: PropTypes.func,
     backgroundColor: PropTypes.string,
-    customTemplatePath: PropTypes.string
+    customTemplatePath: PropTypes.string,
+    baseUrl: PropTypes.string,
   };
 
   static defaultProps = {
+    baseUrl: "",
     onData: () => {},
     legacyMode: false,
     canvas: false,
     onLoadEnd: () => {},
-    backgroundColor: "rgba(0, 0, 0, 0)"
+    backgroundColor: "rgba(0, 0, 0, 0)",
   };
 
   constructor(props) {
@@ -63,14 +65,14 @@ class ECharts extends Component {
       </html>`;
   }
 
-  onMessage = e => {
+  onMessage = (e) => {
     try {
       if (!e) return null;
 
       const { onData } = this.props;
 
-      const data = JSON.parse(unescape(unescape(e.nativeEvent.data)));
-
+      const data = JSON.parse(decodeURI(decodeURI(e.nativeEvent.data)));
+      // console.log("flowolf: data stuff: ", data);
       if (data.types === "DATA") {
         onData(data.payload);
       } else if (data.types === "CALLBACK") {
@@ -84,19 +86,16 @@ class ECharts extends Component {
     }
   };
 
-  postMessage = data => {
+  postMessage = (data) => {
     this.webview.postMessage(jsBuilder.convertToPostMessageString(data));
   };
 
-  ID = () =>
-    `_${Math.random()
-      .toString(36)
-      .substr(2, 9)}`;
+  ID = () => `_${Math.random().toString(36).slice(2, 9)}`;
 
-  setBackgroundColor = color => {
+  setBackgroundColor = (color) => {
     const data = {
       types: "SET_BACKGROUND_COLOR",
-      color
+      color,
     };
     this.postMessage(data);
   };
@@ -107,7 +106,7 @@ class ECharts extends Component {
     const data = {
       types: "GET_OPTION",
       uuid,
-      properties
+      properties,
     };
     this.postMessage(data);
   };
@@ -118,26 +117,26 @@ class ECharts extends Component {
       payload: {
         option,
         notMerge: notMerge || false,
-        lazyUpdate: lazyUpdate || false
-      }
+        lazyUpdate: lazyUpdate || false,
+      },
     };
     this.postMessage(data);
   };
 
   clear = () => {
     const data = {
-      types: "CLEAR"
+      types: "CLEAR",
     };
     this.postMessage(data);
   };
 
-  getWebViewRef = ref => {
+  getWebViewRef = (ref) => {
     this.webview = ref;
   };
 
   onLoadEnd = () => {
     if (this.webview) {
-      this.webview.injectJavaScript(jsBuilder.getJavascriptSource(this.props));
+      // this.webview.injectJavaScript(jsBuilder.getJavascriptSource(this.props));
     }
     this.props.onLoadEnd();
   };
@@ -147,12 +146,12 @@ class ECharts extends Component {
 
     if (this.props.customTemplatePath) {
       source = {
-        uri: this.props.customTemplatePath
+        uri: this.props.customTemplatePath,
       };
     } else {
       source = {
         html: this.html,
-        baseUrl: ""
+        baseUrl: this.props.baseUrl,
       };
     }
 
@@ -164,6 +163,8 @@ class ECharts extends Component {
           scrollEnabled={false}
           source={source}
           onMessage={this.onMessage}
+          injectedJavaScript={jsBuilder.getJavascriptSource(this.props)}
+          // injectedJavaScript={`setTimeout(function() { window.alert('hi') }, 2000);`}
           allowFileAccess
           allowUniversalAccessFromFileURLs
           mixedContentMode="always"
